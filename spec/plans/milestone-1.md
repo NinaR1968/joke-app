@@ -41,4 +41,4 @@ push ל-main, ולינק חי ב-Vercel.
 6. בריפו אין .env/.env.local; יש .env.example עם `OPENAI_API_KEY=` ו-.claude/settings.json.
 
 ## סטטוס
-נבנה: package.json, api/joke.js, index.html. api/joke.js נבדקה מקומית ב-node (POST, GET=405, גוף שבור). ממתין ל-push, פריסה ב-Vercel ובדיקה ידנית.
+הושלם ואושר. נבנו package.json, api/joke.js, index.html. נפרס ב-Vercel (חיבור הריפו תוקן מ-iFamily ל-joke-app) והמשתמשת אישרה שהבדיקה הצליחה. הבא: Milestone 2 בשיחה חדשה.
