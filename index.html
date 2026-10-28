@@ -209,7 +209,8 @@
       if (!response.ok || !data.joke) throw new Error(data.error || "שגיאה");
       setState("joke", data.joke);
     } catch (err) {
-      setState("error", "משהו השתבש. נסו שוב עוד רגע.");
+      const known = err instanceof Error && err.message && err.message !== "שגיאה" && !(err instanceof TypeError) && !(err instanceof SyntaxError);
+      setState("error", known ? err.message : "משהו השתבש. נסו שוב עוד רגע.");
     }
   });
 </script>
