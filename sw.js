@@ -2,7 +2,7 @@
 // Network first: a new deploy shows up right away, the cache is only a fallback.
 // Requests to /api/ are never cached: every joke is a fresh call.
 
-const CACHE = 'joke-app-v6';
+const CACHE = 'joke-app-v7';
 const SHELL = [
   '/', '/auth.js', '/manifest.webmanifest',
   '/assets/logo.svg', '/assets/bg-dots.svg', '/assets/bg-doodles.svg',
@@ -31,8 +31,11 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        // Never keep an address with ?, like the ?code= that comes back from Google
+        if (response.ok && !url.search) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
+        }
         return response;
       })
       .catch(() => caches.match(event.request))

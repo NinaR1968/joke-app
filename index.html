@@ -217,6 +217,10 @@
   .btn:active { transform:translateY(4px); box-shadow:0 1px 0 var(--ink); }
   .btn.plain { color:var(--ink); background:var(--paper); }
   .btn.danger { color:var(--bad); background:var(--bad-soft); border-color:var(--bad); box-shadow:0 5px 0 var(--bad); }
+  .btn.google { min-height:54px; margin-top:0; color:var(--ink); background:#FFFFFF; }
+  .btn:disabled { opacity:.6; }
+  .or { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:600; color:var(--ink-soft); }
+  .or::before, .or::after { content:""; flex:1; border-top:2.5px dashed var(--ink-soft); }
   .who { display:flex; align-items:center; gap:12px; }
   .who b { display:block; font-size:20px; }
   .who span { font-size:15px; color:var(--ink-soft); word-break:break-all; }
@@ -287,6 +291,8 @@
       <h2 id="loginTitle">כניסה</h2>
       <button class="x" type="button" data-close aria-label="סגירה">×</button>
     </div>
+    <button id="googleBtn" class="btn google" type="button">המשך עם Google</button>
+    <p class="or">או עם מייל וסיסמה</p>
     <div class="tabs" role="tablist">
       <button id="tabIn" type="button" role="tab" aria-selected="true">כניסה</button>
       <button id="tabUp" type="button" role="tab" aria-selected="false">הרשמה</button>
@@ -374,6 +380,7 @@
     meta.replaceChildren();
     currentJoke = null;
     jokeBar = null;
+    shownJoke = null;
   }
 
   function busy(on, label) {
@@ -384,7 +391,7 @@
   // ---------- The vote bar: one component, wherever there is a joke ----------
   const SVG = 'http://www.w3.org/2000/svg';
   const THUMB = 'M2 21h3.5V10H2v11zM22 11.2c0-1.1-.9-2-2-2h-5.6l.9-4.3.03-.3c0-.4-.17-.8-.44-1.06L13.8 2.5 7.6 8.7c-.36.36-.6.86-.6 1.4V19c0 1.1.9 2 2 2h8.4c.8 0 1.5-.5 1.8-1.2l2.6-6.6c.1-.24.2-.5.2-.74v-1.26z';
-  let pendingVote = null; // a guest's vote that waits for sign in
+  let pendingVote = null; // a guest's vote that waits for sign in: { id, value, run }
 
   function thumbIcon() {
     const svg = document.createElementNS(SVG, 'svg');
@@ -429,7 +436,7 @@
     async function send(value, exact = false) {
       if (!signedIn()) {
         if (!authOn) { note.textContent = 'הדירוג לא זמין כרגע.'; return; }
-        pendingVote = () => send(value, true);
+        pendingVote = { id: j.id, value, run: () => send(value, true) };
         openLogin('כדי לדרג בדיחות צריך חשבון');
         return;
       }
@@ -458,15 +465,18 @@
     down.b.addEventListener('click', () => send(-1));
     paint();
     wrap.paint = paint;
+    wrap.send = send;
     return wrap;
   }
 
   // ---------- Tab 1: the joke ----------
   let currentJoke = null; // the joke on the screen, with its votes
   let jokeBar = null;
+  let shownJoke = null;   // { text, id, author }: kept so it can come back after Google
 
   function showJoke(text, { id = null, author = null } = {}) {
     show('joke', text);
+    shownJoke = { text, id, author };
     const from = document.createElement('span');
     from.textContent = author ? 'נכתבה עכשיו בשבילך, ' + author : 'נכתבה עכשיו';
     meta.append(from);
@@ -709,7 +719,7 @@
       loginDialog.close();
       loginForm.reset();
       if (waiting) {
-        await waiting();
+        await waiting.run();
         if (view !== 'joke') reloadView(); // so the list shows the vote that was just sent
       }
     } catch (err) {
@@ -718,6 +728,92 @@
       loginBtn.disabled = false;
     }
   });
+
+  // ---------- Google (bonus): leave for Google, and come back to the same place ----------
+  const googleBtn = document.getElementById('googleBtn');
+  const RETURN_KEY = 'joke-app.return';
+
+  function forget() {
+    try { sessionStorage.removeItem(RETURN_KEY); } catch {}
+  }
+
+  // Right before leaving: the tab, the joke on the screen, and the vote that waits
+  function saveForGoogle() {
+    const joke = shownJoke && { ...shownJoke, ...(currentJoke && { likes: currentJoke.likes, dislikes: currentJoke.dislikes }) };
+    const vote = pendingVote && { id: pendingVote.id, value: pendingVote.value };
+    try { sessionStorage.setItem(RETURN_KEY, JSON.stringify({ view, joke, vote })); } catch {}
+  }
+
+  googleBtn.addEventListener('click', async () => {
+    googleBtn.disabled = true;
+    note(loginNote, 'עוברים ל-Google...', true);
+    try {
+      await Auth.google(saveForGoogle); // on success the page goes to Google
+    } catch (err) {
+      forget();
+      note(loginNote, err.message);
+      googleBtn.disabled = false;
+    }
+  });
+
+  // Back from Google with the browser's back button (page from the cache): start fresh
+  window.addEventListener('pageshow', (e) => {
+    if (!e.persisted) return;
+    forget();
+    googleBtn.disabled = false;
+    note(loginNote, '');
+  });
+
+  // On load: put back what was saved before Google. Runs before sign in is ready.
+  function readSaved() {
+    let saved = null;
+    try { saved = JSON.parse(sessionStorage.getItem(RETURN_KEY) || 'null'); } catch {}
+    forget();
+    if (!saved || typeof saved !== 'object') return null;
+    if (VIEWS.includes(saved.view) && saved.view !== view) {
+      history.replaceState(history.state, '', location.pathname + location.search + '#' + saved.view);
+      route();
+    }
+    const j = saved.joke;
+    if (j && typeof j.text === 'string') {
+      showJoke(j.text, { id: typeof j.id === 'string' ? j.id : null, author: j.author || null });
+      if (currentJoke) {
+        currentJoke.likes = Number(j.likes) || 0;
+        currentJoke.dislikes = Number(j.dislikes) || 0;
+        jokeBar.paint();
+      }
+      btn.textContent = 'עוד בדיחה!';
+    }
+    return saved;
+  }
+  const saved = readSaved();
+
+  // After sign in is ready: send the vote that waited, or say why Google did not work
+  async function afterGoogle() {
+    const result = Auth.returned();
+    if (!result) return;
+    if (result !== 'ok') {
+      openLogin();
+      note(loginNote, result === 'cancelled' ? 'הכניסה עם Google בוטלה.' : 'הכניסה עם Google לא הצליחה. נסו שוב.');
+      return;
+    }
+    const v = saved?.vote;
+    if (!v || typeof v.id !== 'string' || ![1, -1].includes(v.value)) return;
+    if (currentJoke && currentJoke.id === v.id) {
+      await jokeBar.send(v.value, true);
+    } else {
+      try {
+        await call('/api/vote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: v.id, value: v.value })
+        });
+      } catch (err) {
+        console.warn('vote after Google:', err.message);
+      }
+    }
+    if (view !== 'joke') reloadView(); // so the list shows the vote that was just sent
+  }
 
   signOutBtn.addEventListener('click', async () => {
     signOutBtn.disabled = true;
@@ -760,7 +856,10 @@
       renderAccount();
       accountBtn.hidden = false;
       Auth.onChange(onAuthChange);
-    }).catch(() => {});
+      afterGoogle();
+    }).catch(() => {
+      if (Auth.returned()) console.warn('Back from Google, but sign in is off.');
+    });
   }
 
   // PWA: register the service worker so the app can be installed
