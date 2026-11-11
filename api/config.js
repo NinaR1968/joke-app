@@ -3,6 +3,7 @@
 // and the PUBLISHABLE key. That key is public by design. A secret key never leaves here.
 
 import { json } from '../lib/http.js';
+import { projectUrl } from '../lib/supabase.js';
 
 export default {
   async fetch(request) {
@@ -10,7 +11,7 @@ export default {
       return json({ error: 'אפשר לשלוח לכאן רק GET' }, 405);
     }
 
-    const url = process.env.SUPABASE_URL;
+    const url = projectUrl();
     const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 
     if (!url || !publishableKey || looksSecret(publishableKey)) {
