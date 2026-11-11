@@ -2,9 +2,9 @@
 // Network first: a new deploy shows up right away, the cache is only a fallback.
 // Requests to /api/ are never cached: every joke is a fresh call.
 
-const CACHE = 'joke-app-v4';
+const CACHE = 'joke-app-v5';
 const SHELL = [
-  '/', '/manifest.webmanifest',
+  '/', '/auth.js', '/manifest.webmanifest',
   '/assets/logo.svg', '/assets/bg-dots.svg', '/assets/bg-doodles.svg',
   '/assets/mascot-idle.svg', '/assets/mascot-think.svg', '/assets/mascot-joke.svg', '/assets/mascot-error.svg',
   '/assets/icon-192.png', '/assets/icon-512.png'

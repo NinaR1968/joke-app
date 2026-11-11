@@ -1,9 +1,11 @@
 // api/joke.js
 // Vercel Function: gets a topic from the page, asks OpenAI for a short Hebrew joke,
-// saves it in Supabase, and returns { joke, id }. Both keys live only here, in process.env.
+// saves it in Supabase, and returns { joke, id, author_name }. Both keys live only here, in process.env.
 // The browser never sees a key: it only talks to /api/joke on our own domain.
+// A signed-in user is known only from the token, never from the body.
 
-import { getSupabase } from '../lib/supabase.js';
+import { getSupabase, hasToken, getUserFromRequest, displayName } from '../lib/supabase.js';
+import { json, authRequired, readJson } from '../lib/http.js';
 
 const OPENAI_URL = 'https://api.openai.com/v1/responses';
 const MAX_TOPIC = 100; // anyone can call this URL, so keep the input short
@@ -17,30 +19,40 @@ const INSTRUCTIONS = [
 export default {
   async fetch(request) {
     if (request.method !== 'POST') {
-      return Response.json({ error: 'אפשר לשלוח לכאן רק בקשת POST' }, { status: 405 });
+      return json({ error: 'אפשר לשלוח לכאן רק בקשת POST' }, 405);
     }
 
     // 1. The key comes from Vercel Environment Variables, never from the code
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       console.error('OPENAI_API_KEY is missing. Add it in Vercel and redeploy.');
-      return Response.json({ error: 'חסר מפתח בשרת' }, { status: 500 });
+      return json({ error: 'חסר מפתח בשרת' }, 500);
     }
 
-    // 2. Read the topic. Empty or broken body means a general joke
-    let topic = '';
-    try {
-      const body = await request.json();
-      topic = String(body?.topic ?? '').trim().slice(0, MAX_TOPIC);
-    } catch {
-      topic = '';
+    // 2. Who is asking? Checked BEFORE OpenAI, so a bad token costs nothing.
+    const supabase = getSupabase();
+    let user = null;
+    let canSave = Boolean(supabase);
+    if (hasToken(request)) {
+      try {
+        user = await getUserFromRequest(request, supabase);
+        if (!user) return authRequired();
+      } catch (err) {
+        // Supabase is down: the joke still comes, it just is not saved
+        console.error('Supabase Auth not reachable, joke will not be saved:', err?.status, err?.message);
+        canSave = false;
+      }
     }
 
-    // 3. The model name is a setting too, so switching models needs no code change
+    // 3. Read the topic. Empty or broken body means a general joke
+    const body = await readJson(request);
+    const topic = String(body.topic ?? '').trim().slice(0, MAX_TOPIC);
+
+    // 4. The model name is a setting too, so switching models needs no code change
     const model = process.env.OPENAI_MODEL || 'gpt-5';
     const input = topic ? `נושא הבדיחה: ${topic}` : 'אין נושא. ספר בדיחה כללית על החיים.';
 
-    // 4. Call OpenAI from the server, with the key in the Authorization header
+    // 5. Call OpenAI from the server, with the key in the Authorization header
     let res;
     try {
       res = await fetch(OPENAI_URL, {
@@ -59,7 +71,7 @@ export default {
       });
     } catch (err) {
       console.error('Network error calling OpenAI:', err);
-      return Response.json({ error: 'אין חיבור ל-OpenAI כרגע. נסו שוב.' }, { status: 502 });
+      return json({ error: 'אין חיבור ל-OpenAI כרגע. נסו שוב.' }, 502);
     }
 
     const data = await res.json().catch(() => ({}));
@@ -67,33 +79,31 @@ export default {
     if (!res.ok) {
       // Full details go to Vercel Logs. The user gets a short Hebrew message
       console.error('OpenAI error', res.status, data?.error?.code, data?.error?.message);
-      return Response.json({ error: friendlyError(res.status, data?.error?.code) }, { status: 502 });
+      return json({ error: friendlyError(res.status, data?.error?.code) }, 502);
     }
 
-    // 5. Pull the text out of the response and send only the joke back
+    // 6. Pull the text out of the response and send only the joke back
     const joke = extractText(data);
     if (!joke) {
       console.error('No text in OpenAI response', data?.status, data?.incomplete_details);
-      return Response.json({ error: 'לא התקבלה בדיחה. נסו שוב.' }, { status: 502 });
+      return json({ error: 'לא התקבלה בדיחה. נסו שוב.' }, 502);
     }
 
-    // 6. Save it. If the database is down, the joke still reaches the user
-    const id = await saveJoke(topic, joke);
+    // 7. Save it, with the name from the token. If the database is down, the joke still reaches the user
+    const author_name = user ? displayName(user) : null;
+    const id = canSave ? await saveJoke(supabase, topic, joke, user?.id ?? null, author_name) : null;
+    if (!supabase) console.error('Not saved: SUPABASE_URL or SUPABASE_SECRET_KEY is missing.');
 
-    console.log('Joke served. Topic:', topic || '(general)', '| model:', model, '| saved:', id ? 'yes' : 'no');
-    return Response.json({ joke, id });
+    console.log('Joke served. Topic:', topic || '(general)', '| model:', model,
+      '| user:', user ? 'yes' : 'guest', '| saved:', id ? 'yes' : 'no');
+    return json({ joke, id, author_name });
   }
 };
 
-async function saveJoke(topic, text) {
-  const supabase = getSupabase();
-  if (!supabase) {
-    console.error('Not saved: SUPABASE_URL or SUPABASE_SECRET_KEY is missing.');
-    return null;
-  }
+async function saveJoke(supabase, topic, text, userId, authorName) {
   const { data, error } = await supabase
     .from('jokes')
-    .insert({ topic: topic || null, text })
+    .insert({ topic: topic || null, text, user_id: userId, author_name: authorName })
     .select('id')
     .single();
   if (error) {
