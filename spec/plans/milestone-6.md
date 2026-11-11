@@ -47,4 +47,5 @@ get_advisors: ‏rls_enabled_no_policy על jokes ועל votes (INFO, הנעיל
 הערה: ל-service_role יש על votes גם REFERENCES, ‏TRIGGER ו-TRUNCATE, מההרשאות שמוגדרות כברירת מחדל ב-Supabase. זה לא פותח כלום לדפדפן.
 שלב 2 (בנייה) הושלם: api/vote.js, ‏api/feed.js, נמחקו api/laugh.js ו-api/top.js. ‏index.html: רכיב הצבעה voteBar עם אגודל SVG (createElementNS), שלוש לשוניות עם #, קהילה עם "חדשות" ו"הכי מצחיקות" ודירוג בפינה, אהבתי עם מסך נעול לאורח, הצבעה שמחכה לכניסה, וטעינה מחדש כשמתחלף המשתמש. הקוד של "צחקתי" הוסר, והמפתח הישן ב-localStorage מתנקה. ‏sw.js בגרסה joke-app-v6.
 נבדק במחשב: תחביר תקין בכל הקבצים ובסקריפט של הדף. ‏vote.js ו-feed.js נבדקו מול לקוח Supabase מדומה: ‏405, ‏401 בלי טוקן ועם טוקן לא מוכר, ‏400 ל-value 5, ל-"1" כמחרוזת ול-id שבור, ‏404 לבדיחה שלא קיימת, ‏voter תמיד מהטוקן גם כש-user_id בגוף, ו-feed לא מחזירה user_id. כל התשובות עם no-store. המסך עוד לא נבדק בדפדפן, ועוד לא מול Supabase האמיתי.
-הבא: דחיפה ובדיקה בכתובת החיה.
+נדחף ל-main (4a27928), והפריסה ב-Vercel הגיעה ל-READY. ‏/api/feed?mode=new בפריסה מחזירה 200 עם no-store, את 4 הבדיחות מ-Supabase האמיתי, בלי user_id.
+**Milestone 6 הושלם.** תנאי ההשלמה נבדקו ידנית בכתובת החיה (https://joke-app-olive.vercel.app), והמשתמשת אישרה ב-11.11.2026. הבא: הבונוס, כניסה עם Google, בשיחה חדשה.
