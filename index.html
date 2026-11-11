@@ -74,15 +74,27 @@
   .stage[data-state="error"] { background:var(--bad-soft); }
   .stage[data-state="error"] .msg { color:var(--bad); font-weight:600; }
 
-  /* Under the joke: where it came from, and the laugh button */
-  .meta { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:6px; font-size:14px; font-weight:500; color:var(--ink-soft); }
+  /* Under the joke: where it came from, and the vote bar */
+  .meta { display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:6px; font-size:14px; font-weight:500; color:var(--ink-soft); }
   .meta[hidden] { display:none; }
-  .laugh {
-    min-height:42px; padding:6px 18px; font-size:17px; font-weight:700; color:var(--ink);
-    background:var(--sun); border:3px solid var(--ink); border-radius:999px; box-shadow:0 4px 0 var(--ink); transform:rotate(-2deg);
+
+  /* The vote bar: one component, wherever there is a joke. Mine is marked with color AND a filled icon */
+  .votes { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+  .vote {
+    display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:4px 14px; font-size:16px; font-weight:700; color:var(--ink);
+    background:var(--paper); border:2.5px solid var(--ink); border-radius:999px; box-shadow:0 4px 0 var(--ink); transition:transform .08s, box-shadow .08s;
   }
-  .laugh:active { transform:rotate(-2deg) translateY(3px); box-shadow:0 1px 0 var(--ink); }
-  .laugh[disabled] { cursor:default; background:var(--paper); color:var(--ok); border-color:var(--ok); box-shadow:none; }
+  .vote:active { transform:translateY(3px); box-shadow:0 1px 0 var(--ink); }
+  .vote[disabled] { cursor:wait; opacity:.65; }
+  .vote svg { width:20px; height:20px; flex:none; }
+  .vote.down svg { transform:rotate(180deg); }
+  .vote svg path { fill:none; stroke:currentColor; stroke-width:2; stroke-linejoin:round; }
+  .vote[aria-pressed="true"] svg path { fill:currentColor; }
+  .vote.up[aria-pressed="true"] { background:var(--mint); }
+  .vote.down[aria-pressed="true"] { background:var(--pink); }
+  .vote-note { font-size:14px; font-weight:600; color:var(--bad); }
+  .vote-note:empty { display:none; }
+  .to-community { align-self:center; font-size:17px; font-weight:700; color:var(--ink); text-decoration:underline; text-underline-offset:4px; text-decoration-thickness:2px; padding:6px; }
 
   /* The mascot: four pictures in assets/, one shown per state */
   .mascot { width:118px; }
@@ -101,29 +113,59 @@
   .stage[data-state="error"] .mascot { animation:wobble 1.2s ease-in-out 2; }
   @media (prefers-reduced-motion: reduce) { .mascot, .mascot img { animation:none !important; } }
 
-  /* The top list: ranked sticker cards */
+  /* Views: one per tab. Only the open one is shown */
+  .view { display:flex; flex-direction:column; gap:14px; }
+  .view[hidden] { display:none; }
   h2 { font-size:24px; font-weight:700; margin-top:16px; }
-  ol.top { list-style:none; display:flex; flex-direction:column; gap:12px; counter-reset:rank; margin-top:8px; }
-  ol.top li {
+  .view-head { padding-top:52px; margin-top:0; font-size:28px; }
+  .view-sub { font-size:16px; font-weight:500; color:var(--ink-soft); margin-top:-8px; }
+
+  /* Community and liked: sticker cards, slightly rotated, rank on the corner in "top" */
+  ol.cards { list-style:none; display:flex; flex-direction:column; gap:16px; counter-reset:rank; margin-top:6px; }
+  ol.cards > li {
     position:relative; counter-increment:rank; background:var(--paper); border:3px solid var(--ink); border-radius:18px;
-    box-shadow:4px 4px 0 var(--ink); padding:12px 14px; padding-inline-start:56px;
-    font-family:var(--joke); font-size:18px; line-height:1.5;
+    box-shadow:4px 4px 0 var(--ink); padding:14px 16px; display:flex; flex-direction:column; gap:10px;
   }
-  ol.top li:nth-child(odd) { transform:rotate(-.7deg); }
-  ol.top li:nth-child(even) { transform:rotate(.7deg); }
-  ol.top li::before {
-    content:counter(rank); position:absolute; inset-inline-start:12px; top:12px; width:32px; height:32px;
+  ol.cards > li:nth-child(odd) { transform:rotate(-.7deg); }
+  ol.cards > li:nth-child(even) { transform:rotate(.7deg); }
+  .card-text { font-family:var(--joke); font-size:19px; line-height:1.5; white-space:pre-wrap; }
+  .card-by { font-size:14px; font-weight:600; color:var(--ink-soft); }
+  ol.cards.ranked > li:not(.muted)::before {
+    content:counter(rank); position:absolute; top:-12px; inset-inline-start:-10px; width:34px; height:34px;
     display:grid; place-items:center; border:3px solid var(--ink); border-radius:50%;
-    font-family:var(--ui); font-size:16px; font-weight:700; color:#FFFFFF; background:var(--grape);
+    font-size:16px; font-weight:700; color:#FFFFFF; background:var(--grape); transform:rotate(-8deg);
   }
-  ol.top li:nth-child(1)::before { background:var(--red); }
-  ol.top li:nth-child(2)::before { background:var(--blue); }
-  ol.top li:nth-child(3)::before { background:var(--mint); }
-  ol.top li b { display:block; font-family:var(--ui); font-size:14px; color:var(--ink-soft); margin-top:4px; font-weight:600; }
-  ol.top li.muted { padding-inline-start:14px; font-family:var(--ui); font-size:16px; color:var(--ink-soft); }
-  ol.top li.muted::before { display:none; }
+  ol.cards.ranked > li:nth-child(1)::before { background:var(--red); }
+  ol.cards.ranked > li:nth-child(2)::before { background:var(--blue); }
+  ol.cards.ranked > li:nth-child(3)::before { background:var(--mint); }
+  ol.cards.ranked > li:not(.muted) { padding-top:20px; }
+  ol.cards > li.muted { font-size:16px; font-weight:500; color:var(--ink-soft); text-align:center; }
+
+  /* Liked, for a guest: a locked screen with the mascot */
+  .locked {
+    display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; margin-top:6px;
+    background:var(--paper); border:3px solid var(--ink); border-radius:28px; box-shadow:6px 6px 0 var(--ink); padding:24px 20px; transform:rotate(-1deg);
+  }
+  .locked[hidden] { display:none; }
+  .locked img { width:110px; height:auto; }
+  .locked p { font-size:18px; font-weight:500; color:var(--ink-soft); max-width:30ch; }
+  .locked .btn { width:100%; }
 
   footer { text-align:center; font-size:13px; font-weight:500; color:var(--ink-soft); margin-top:22px; }
+
+  /* Tabs at the bottom: one floating white card. The open tab is ink with white text */
+  body { padding-bottom:calc(104px + env(safe-area-inset-bottom)); }
+  .tabbar {
+    position:fixed; z-index:5; left:50%; bottom:calc(12px + env(safe-area-inset-bottom)); transform:translateX(-50%);
+    width:min(420px, calc(100% - 28px)); display:flex; gap:6px; padding:6px;
+    background:var(--paper); border:3px solid var(--ink); border-radius:22px; box-shadow:4px 4px 0 var(--ink);
+  }
+  .tabbar a {
+    flex:1; display:grid; place-items:center; min-height:48px; border-radius:15px;
+    font-size:17px; font-weight:700; color:var(--ink); text-decoration:none;
+  }
+  .tabbar a[aria-current="page"] { background:var(--ink); color:#FFFFFF; }
+  .tabbar a:focus-visible, .to-community:focus-visible { outline:4px solid var(--blue); outline-offset:2px; }
 
   /* Account button: a white sticker in the top left corner */
   main { position:relative; }
@@ -183,32 +225,61 @@
 <body>
 <main>
   <button id="account" class="account guest" type="button" hidden>כניסה</button>
-  <h1 class="logo"><img src="/assets/logo.svg" alt="בדיחה בלחיצה" width="300" height="158"></h1>
-  <p class="sub">כותבים נושא, לוחצים, וצוחקים. בלי נושא, מקבלים בדיחה כללית.</p>
 
-  <form id="form">
-    <label for="topic">על מה הבדיחה?</label>
-    <input id="topic" name="topic" type="text" maxlength="100" placeholder="למשל: חתולים" autocomplete="off" enterkeyhint="send">
-    <button id="go" class="go" type="submit">תנו לי בדיחה!</button>
-  </form>
+  <!-- Tab 1: the joke screen from Milestones 1-4 -->
+  <section id="view-joke" class="view" aria-label="בדיחה">
+    <h1 class="logo"><img src="/assets/logo.svg" alt="בדיחה בלחיצה" width="300" height="158"></h1>
+    <p class="sub">כותבים נושא, לוחצים, וצוחקים. בלי נושא, מקבלים בדיחה כללית.</p>
 
-  <section id="stage" class="stage" data-state="idle">
-    <div class="mascot" aria-hidden="true">
-      <img class="m-idle" src="/assets/mascot-idle.svg" alt="">
-      <img class="m-think" src="/assets/mascot-think.svg" alt="">
-      <img class="m-joke" src="/assets/mascot-joke.svg" alt="">
-      <img class="m-error" src="/assets/mascot-error.svg" alt="">
-    </div>
-    <p id="msg" class="msg" aria-live="polite">לוחצים על הכפתור, והבדיחה מופיעה כאן</p>
-    <div id="meta" class="meta" hidden></div>
+    <form id="form">
+      <label for="topic">על מה הבדיחה?</label>
+      <input id="topic" name="topic" type="text" maxlength="100" placeholder="למשל: חתולים" autocomplete="off" enterkeyhint="send">
+      <button id="go" class="go" type="submit">תנו לי בדיחה!</button>
+    </form>
+
+    <section id="stage" class="stage" data-state="idle">
+      <div class="mascot" aria-hidden="true">
+        <img class="m-idle" src="/assets/mascot-idle.svg" alt="">
+        <img class="m-think" src="/assets/mascot-think.svg" alt="">
+        <img class="m-joke" src="/assets/mascot-joke.svg" alt="">
+        <img class="m-error" src="/assets/mascot-error.svg" alt="">
+      </div>
+      <p id="msg" class="msg" aria-live="polite">לוחצים על הכפתור, והבדיחה מופיעה כאן</p>
+      <div id="meta" class="meta" hidden></div>
+    </section>
+
+    <a class="to-community" href="#community">לכל הבדיחות בקהילה ←</a>
   </section>
 
-  <section aria-labelledby="topTitle">
-    <h2 id="topTitle">הכי מצחיקות</h2>
-    <ol id="top" class="top"><li class="muted">טוען...</li></ol>
+  <!-- Tab 2: community, for everyone -->
+  <section id="view-community" class="view" aria-labelledby="communityTitle" hidden>
+    <h2 id="communityTitle" class="view-head">הקהילה</h2>
+    <p class="view-sub">כל הבדיחות שנכתבו כאן. מה מצחיק אתכם?</p>
+    <div class="tabs" role="tablist" aria-label="מיון">
+      <button id="sortNew" type="button" role="tab" aria-selected="true">חדשות</button>
+      <button id="sortTop" type="button" role="tab" aria-selected="false">הכי מצחיקות</button>
+    </div>
+    <ol id="feed" class="cards" aria-live="polite"></ol>
+  </section>
+
+  <!-- Tab 3: what I liked. A guest sees a locked screen -->
+  <section id="view-liked" class="view" aria-labelledby="likedTitle" hidden>
+    <h2 id="likedTitle" class="view-head">אהבתי</h2>
+    <div id="likedLocked" class="locked" hidden>
+      <img src="/assets/mascot-idle.svg" alt="">
+      <p>כאן נשמרות הבדיחות שאהבת. כדי לדרג בדיחות צריך חשבון.</p>
+      <button id="likedLogin" class="btn" type="button">כניסה</button>
+    </div>
+    <ol id="liked" class="cards" aria-live="polite"></ol>
   </section>
 </main>
 <footer>מיישם AI ואוטומציה · 53500</footer>
+
+<nav class="tabbar" aria-label="לשוניות">
+  <a href="#joke" data-tab="joke">בדיחה</a>
+  <a href="#community" data-tab="community">קהילה</a>
+  <a href="#liked" data-tab="liked">אהבתי</a>
+</nav>
 
 <dialog id="loginDialog" aria-labelledby="loginTitle">
   <div class="sheet">
@@ -268,13 +339,14 @@
   const stage = document.getElementById('stage');
   const msg = document.getElementById('msg');
   const meta = document.getElementById('meta');
-  const topList = document.getElementById('top');
 
-  // Which jokes this device already laughed at (a convenience, not security)
-  const LKEY = 'joke-app.laughed';
-  let laughed = [];
-  try { laughed = JSON.parse(localStorage.getItem(LKEY) || '[]'); } catch {}
-  const remember = (id) => { laughed.push(id); try { localStorage.setItem(LKEY, JSON.stringify(laughed.slice(-200))); } catch {} };
+  // "צחקתי" from Milestone 4 is gone. Clean its old note on this device.
+  try { localStorage.removeItem('joke-app.laughed'); } catch {}
+
+  // Sign in is optional. authOn becomes true once auth.js is ready.
+  let authOn = false;
+  const authReady = window.Auth ? Auth.ready.then(() => (authOn = true), () => false) : Promise.resolve(false);
+  const signedIn = () => authOn && Boolean(Auth.user());
 
   // Every call to /api sends the token, if there is one.
   // A token the server does not know (401 + auth_required): sign out here too.
@@ -300,12 +372,98 @@
     msg.textContent = text; // textContent, never innerHTML: the text came from outside
     meta.hidden = true;
     meta.replaceChildren();
+    currentJoke = null;
+    jokeBar = null;
   }
 
   function busy(on, label) {
     btn.disabled = on;
     if (on) show('think', label);
   }
+
+  // ---------- The vote bar: one component, wherever there is a joke ----------
+  const SVG = 'http://www.w3.org/2000/svg';
+  const THUMB = 'M2 21h3.5V10H2v11zM22 11.2c0-1.1-.9-2-2-2h-5.6l.9-4.3.03-.3c0-.4-.17-.8-.44-1.06L13.8 2.5 7.6 8.7c-.36.36-.6.86-.6 1.4V19c0 1.1.9 2 2 2h8.4c.8 0 1.5-.5 1.8-1.2l2.6-6.6c.1-.24.2-.5.2-.74v-1.26z';
+  let pendingVote = null; // a guest's vote that waits for sign in
+
+  function thumbIcon() {
+    const svg = document.createElementNS(SVG, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS(SVG, 'path');
+    path.setAttribute('d', THUMB);
+    svg.append(path);
+    return svg;
+  }
+
+  // j = { id, likes, dislikes, my_vote }. onDone(j) runs after the server answered.
+  function voteBar(j, onDone) {
+    const wrap = document.createElement('div');
+    wrap.className = 'votes';
+    const make = (cls) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'vote ' + cls;
+      const n = document.createElement('span');
+      b.append(thumbIcon(), n);
+      return { b, n };
+    };
+    const up = make('up');
+    const down = make('down');
+    const note = document.createElement('span');
+    note.className = 'vote-note';
+    note.setAttribute('role', 'status');
+    wrap.append(up.b, down.b, note);
+
+    function paint() {
+      const likes = j.likes ?? 0, dislikes = j.dislikes ?? 0;
+      up.n.textContent = likes;
+      down.n.textContent = dislikes;
+      up.b.setAttribute('aria-pressed', String(j.my_vote === 1));
+      down.b.setAttribute('aria-pressed', String(j.my_vote === -1));
+      up.b.setAttribute('aria-label', 'אהבתי, ' + likes);
+      down.b.setAttribute('aria-label', 'לא אהבתי, ' + dislikes);
+    }
+
+    // exact = true: send this value as is (a vote that waited for sign in). Otherwise a second click takes it back.
+    async function send(value, exact = false) {
+      if (!signedIn()) {
+        if (!authOn) { note.textContent = 'הדירוג לא זמין כרגע.'; return; }
+        pendingVote = () => send(value, true);
+        openLogin('כדי לדרג בדיחות צריך חשבון');
+        return;
+      }
+      const next = exact ? value : (j.my_vote === value ? 0 : value);
+      up.b.disabled = down.b.disabled = true;
+      note.textContent = '';
+      try {
+        const r = await call('/api/vote', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: j.id, value: next })
+        });
+        j.likes = r.likes;
+        j.dislikes = r.dislikes;
+        j.my_vote = r.my_vote ?? null;
+        paint();
+        if (onDone) onDone(j);
+      } catch (err) {
+        note.textContent = err.message;
+      } finally {
+        up.b.disabled = down.b.disabled = false;
+      }
+    }
+
+    up.b.addEventListener('click', () => send(1));
+    down.b.addEventListener('click', () => send(-1));
+    paint();
+    wrap.paint = paint;
+    return wrap;
+  }
+
+  // ---------- Tab 1: the joke ----------
+  let currentJoke = null; // the joke on the screen, with its votes
+  let jokeBar = null;
 
   function showJoke(text, { id = null, author = null } = {}) {
     show('joke', text);
@@ -314,25 +472,9 @@
     meta.append(from);
 
     if (id) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'laugh';
-      const done = laughed.includes(id);
-      b.textContent = done ? 'צחקתם' : 'צחקתי';
-      b.disabled = done;
-      b.addEventListener('click', async () => {
-        b.disabled = true;
-        try {
-          const r = await call('/api/laugh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
-          remember(id);
-          b.textContent = 'צחקתם · ' + r.laughs;
-          loadTop();
-        } catch (err) {
-          b.disabled = false;
-          from.textContent = err.message;
-        }
-      });
-      meta.append(b);
+      currentJoke = { id, likes: 0, dislikes: 0, my_vote: null };
+      jokeBar = voteBar(currentJoke);
+      meta.append(jokeBar);
     }
     meta.hidden = false;
   }
@@ -354,34 +496,112 @@
     }
   });
 
-  async function loadTop() {
+  // ---------- Lists: community and liked ----------
+  const feedList = document.getElementById('feed');
+  const likedList = document.getElementById('liked');
+  const likedLocked = document.getElementById('likedLocked');
+  const sortNew = document.getElementById('sortNew');
+  const sortTop = document.getElementById('sortTop');
+  let sort = 'new';
+  let feedSeq = 0, likedSeq = 0; // only the last load may draw
+
+  function mutedLine(list, text) {
+    const li = document.createElement('li');
+    li.className = 'muted';
+    li.textContent = text;
+    list.replaceChildren(li);
+  }
+
+  function card(j, onDone) {
+    const li = document.createElement('li');
+    const p = document.createElement('p');
+    p.className = 'card-text';
+    p.textContent = j.text;
+    const by = document.createElement('span');
+    by.className = 'card-by';
+    by.textContent = (j.author_name ? 'של ' + j.author_name : 'בדיחה אנונימית') + (j.topic ? ' · ' + j.topic : '');
+    li.append(p, by, voteBar(j, onDone ? (x) => onDone(x, li) : null));
+    return li;
+  }
+
+  async function loadCommunity() {
+    const seq = ++feedSeq;
+    const mode = sort;
+    sortNew.setAttribute('aria-selected', String(mode === 'new'));
+    sortTop.setAttribute('aria-selected', String(mode === 'top'));
+    feedList.classList.toggle('ranked', mode === 'top');
+    mutedLine(feedList, 'טוען...');
     try {
-      const { jokes } = await call('/api/top');
-      topList.replaceChildren();
+      const { jokes } = await call('/api/feed?mode=' + mode);
+      if (seq !== feedSeq) return;
       if (!jokes.length) {
-        const li = document.createElement('li');
-        li.className = 'muted';
-        li.textContent = 'עוד אין. צחקו על בדיחה, והיא תופיע כאן.';
-        topList.append(li);
-        return;
+        return mutedLine(feedList, mode === 'top' ? 'עוד אין. סמנו "אהבתי" על בדיחה, והיא תופיע כאן.' : 'עוד אין בדיחות. בקשו אחת בלשונית "בדיחה".');
       }
-      for (const j of jokes) {
-        const li = document.createElement('li');
-        li.textContent = j.text;
-        const b = document.createElement('b');
-        b.textContent = (j.laughs === 1 ? 'צחוק אחד' : j.laughs + ' צחוקים') + (j.topic ? ' · ' + j.topic : '');
-        li.append(b);
-        topList.append(li);
-      }
+      feedList.replaceChildren(...jokes.map((j) => card(j)));
     } catch (err) {
-      topList.replaceChildren();
-      const li = document.createElement('li');
-      li.className = 'muted';
-      li.textContent = err.message;
-      topList.append(li);
+      if (seq === feedSeq) mutedLine(feedList, err.message);
     }
   }
-  loadTop();
+
+  sortNew.addEventListener('click', () => { sort = 'new'; loadCommunity(); });
+  sortTop.addEventListener('click', () => { sort = 'top'; loadCommunity(); });
+
+  // Taking a like back removes the card from this list
+  function dropIfNotLiked(j, li) {
+    if (j.my_vote === 1) return;
+    li.remove();
+    if (!likedList.children.length) mutedLine(likedList, 'אין כאן כלום כרגע. סמנו "אהבתי" על בדיחה בקהילה.');
+  }
+
+  async function loadLiked() {
+    const seq = ++likedSeq;
+    await authReady;
+    if (seq !== likedSeq) return;
+    if (!signedIn()) {
+      likedLocked.hidden = false;
+      likedList.replaceChildren();
+      return;
+    }
+    likedLocked.hidden = true;
+    mutedLine(likedList, 'טוען...');
+    try {
+      const { jokes } = await call('/api/feed?mode=liked');
+      if (seq !== likedSeq) return;
+      if (!jokes.length) return mutedLine(likedList, 'אין כאן כלום כרגע. סמנו "אהבתי" על בדיחה בקהילה.');
+      likedList.replaceChildren(...jokes.map((j) => card(j, dropIfNotLiked)));
+    } catch (err) {
+      if (seq !== likedSeq) return;
+      if (!signedIn()) { likedLocked.hidden = false; likedList.replaceChildren(); return; }
+      mutedLine(likedList, err.message);
+    }
+  }
+
+  document.getElementById('likedLogin').addEventListener('click', () => openLogin());
+
+  // ---------- Tabs: #joke, #community, #liked. The phone's back button moves between them ----------
+  const VIEWS = ['joke', 'community', 'liked'];
+  let view = 'joke';
+
+  function route() {
+    const name = location.hash.slice(1);
+    view = VIEWS.includes(name) ? name : 'joke';
+    for (const v of VIEWS) document.getElementById('view-' + v).hidden = v !== view;
+    for (const a of document.querySelectorAll('.tabbar a')) {
+      if (a.dataset.tab === view) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    }
+    reloadView();
+    window.scrollTo(0, 0);
+  }
+
+  // Lists load when you open the tab, and after an action. Never on a timer.
+  function reloadView() {
+    if (view === 'community') loadCommunity();
+    else if (view === 'liked') loadLiked();
+  }
+
+  window.addEventListener('hashchange', route);
+  route();
 
   // ---------- Account: button, sign-in dialog, "my account" dialog ----------
   const accountBtn = document.getElementById('account');
@@ -468,6 +688,8 @@
   for (const d of [loginDialog, meDialog]) {
     d.addEventListener('click', (e) => { if (e.target === d || e.target.closest('[data-close]')) d.close(); });
   }
+  // Closing the sign-in window without signing in cancels the vote that waited
+  loginDialog.addEventListener('close', () => { if (!signedIn()) pendingVote = null; });
 
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -482,8 +704,14 @@
     try {
       if (mode === 'up') await Auth.signUp(authName.value, email, password);
       else await Auth.signIn(email, password);
+      const waiting = pendingVote; // take it before close() clears it
+      pendingVote = null;
       loginDialog.close();
       loginForm.reset();
+      if (waiting) {
+        await waiting();
+        if (view !== 'joke') reloadView(); // so the list shows the vote that was just sent
+      }
     } catch (err) {
       note(loginNote, err.message);
     } finally {
@@ -514,11 +742,24 @@
   });
 
   // Sign in is optional: if /api/config fails, the button stays hidden and everyone is a guest
+  // Signing in or out: the open list loads again, so my votes show up or disappear
+  let who = null;
+  const userId = () => Auth.session()?.user?.id ?? null;
+  function onAuthChange() {
+    renderAccount();
+    const id = userId();
+    if (id === who) return; // e.g. a token refresh: same person, nothing to reload
+    who = id;
+    if (currentJoke) { currentJoke.my_vote = null; jokeBar.paint(); }
+    reloadView();
+  }
+
   if (window.Auth) {
     Auth.ready.then(() => {
+      who = userId();
       renderAccount();
       accountBtn.hidden = false;
-      Auth.onChange(renderAccount);
+      Auth.onChange(onAuthChange);
     }).catch(() => {});
   }
 
