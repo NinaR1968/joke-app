@@ -10,23 +10,37 @@
 - רושם את sw.js כ-service worker.
 
 ### לוגיקה
-- Vercel Function אחת: api/joke.js, עם `export default { async fetch(request) { ... } }`.
+- הפונקציות בתיקייה api. הראשונה, api/joke.js, עם `export default { async fetch(request) { ... } }`.
 - מקבלת רק POST עם JSON: `{ "topic": "..." }`. מחזירה תמיד JSON: `{ "joke": "..." }` בהצלחה, `{ "error": "..." }` בשגיאה.
 - חותכת את הנושא ל-100 תווים. נושא ריק או גוף שבור נחשבים "אין נושא".
 - פונה ל-OpenAI, מחלצת את הטקסט, ומחזירה רק את הבדיחה.
 
 ### נתונים
-אין. שום דבר לא נשמר.
+מ-Milestone 4: Supabase. טבלה אחת, jokes, ופונקציה אחת בבסיס הנתונים, add_laugh. רק הפונקציות בתיקייה api מדברות עם Supabase, עם המפתח הסודי. הדף מדבר רק עם /api.
 
 ## 2. מבנה הנתונים
-אין טבלאות. המוצר לא שומר נתונים.
+מ-Milestone 4, טבלה אחת ב-Supabase:
+
+| העמודה | הסוג | הערה |
+|---|---|---|
+| id | uuid | מפתח ראשי, gen_random_uuid() |
+| created_at | timestamptz | now() |
+| topic | text | הנושא, או null |
+| text | text | הבדיחה. חובה |
+| laughs | integer | מונה הצחוקים. חובה, 0 |
+
+- הנעילה: RLS דולק בלי policy. grant select, insert, update ל-service_role בלבד. revoke all מ-anon ומ-authenticated.
+- public.add_laugh(joke_id uuid) מוסיפה 1 ומחזירה את המספר החדש, בצעד אחד, כדי ששתי לחיצות באותו רגע ייספרו. execute ל-service_role בלבד.
+- ה-SQL שמור ב-db/create_jokes.sql, ורץ דרך המחבר של Supabase.
 
 החוזה בין הדף לפונקציה:
 
 | כיוון | הגוף | סטטוס |
 |---|---|---|
 | הדף אל הפונקציה | `{ "topic": "חתולים" }`, או `{ "topic": "" }` | POST |
-| הפונקציה אל הדף, הצלחה | `{ "joke": "..." }` | 200 |
+| הפונקציה אל הדף, הצלחה | `{ "joke": "...", "id": "uuid" }`. id הוא null אם השמירה נכשלה | 200 |
+| /api/laugh | POST `{ "id": "uuid" }`, ומחזירה `{ "laughs": 3 }` | 200, 400 או 404 |
+| /api/top | GET, ומחזירה `{ "jokes": [{ "id", "topic", "text", "laughs" }] }` | 200 |
 | הפונקציה אל הדף, שגיאה | `{ "error": "הודעה קצרה בעברית" }` | 405, 500 או 502 |
 
 ## 3. התחברות והרשאות
@@ -51,10 +65,12 @@
 | OPENAI_API_KEY | Vercel, Environment Variables, ב-Production וב-Preview | Secret | מפתח ה-production, ‏joke-in-a-click. רק הפונקציה קוראת אותו |
 | OPENAI_API_KEY | .env.local במחשב, רק בהרצה מקומית | קובץ שלא נכנס לריפו | מפתח dev נפרד, ‏joke-in-a-click-dev. הסטודנט מדביק אותו ביד |
 | OPENAI_MODEL | Vercel, Environment Variables | Config, לא חובה | שם המודל. בלי המשתנה: gpt-5 |
+| SUPABASE_URL | Vercel, כל הסביבות | Config | כתובת הפרויקט ב-Supabase. מ-Milestone 4 |
+| SUPABASE_SECRET_KEY | Vercel, Production ו-Preview | Secret | המפתח הסודי, שעוקף את הנעילה. רק lib/supabase.js קורא אותו. מ-Milestone 4 |
 
 - המפתח לא מופיע בשום קובץ שנכנס לריפו, ולא בצ׳אט עם Claude. היחיד: .env.local במחשב, למי שמריץ מקומית.
 - מפתח ה-production נשמר ב-Vercel כבר ב-Milestone 1. אחרי כל שינוי במשתנה: Redeploy.
-- .claude/settings.json חוסם ל-Claude את הקריאה של .env ושל .env.*. בריפו יש .env.example עם השורה OPENAI_API_KEY= בלבד. גם .env.local מכיל רק את השורה הזו, עם מפתח ה-dev. שם המודל לא נכנס לקובץ: בלי OPENAI_MODEL הקוד משתמש ב-gpt-5.
+- .claude/settings.json חוסם ל-Claude את הקריאה של .env ושל .env.*. בריפו יש .env.example עם השורות OPENAI_API_KEY= ו-SUPABASE_SECRET_KEY= בלבד. גם .env.local מכיל רק את השורה הזו, עם מפתח ה-dev. שם המודל לא נכנס לקובץ: בלי OPENAI_MODEL הקוד משתמש ב-gpt-5.
 - הדפדפן לא מקבל אף מפתח. הוא פונה רק ל-/api/joke.
 - .gitignore כולל `.env`, ‏`.env.*`, את החריגה `!.env.example`, ‏`.vercel` ו-`node_modules`. הוא נוצר לפני הקומיט הראשון.
 - בחשבון OpenAI: קרדיט מראש, Auto recharge כבוי, ומגבלת הוצאה חודשית.
@@ -64,7 +80,7 @@
 index.html              המסך, עם ה-CSS וה-JavaScript
 manifest.webmanifest    name, short_name, start_url, display: standalone, lang: he, dir: rtl, אייקונים
 sw.js                   service worker, network-first, בלי /api
-package.json            "type": "module", בלי dependencies
+package.json            "type": "module", ו-@supabase/supabase-js ב-dependencies
 .gitignore              .env, .env.*, !.env.example, .vercel, node_modules
 .env.example            שורה אחת בלבד: OPENAI_API_KEY=, בלי ערך ובלי הערות
 .claude/settings.json   חוסם ל-Claude את הקריאה של .env ושל .env.*
@@ -73,7 +89,11 @@ assets/mascot-idle.svg, mascot-think.svg, mascot-joke.svg, mascot-error.svg
 assets/bg-dots.svg, bg-doodles.svg
 assets/icon.svg, icon-maskable.svg
 assets/icon-192.png, icon-512.png, icon-512-maskable.png
-api/joke.js             הפונקציה. המקום היחיד שקורא את המפתח
+api/joke.js             הבדיחה מ-OpenAI, ושמירה בטבלה
+api/laugh.js            "צחקתי", דרך add_laugh
+api/top.js              "הכי מצחיקות"
+lib/supabase.js         הלקוח של Supabase, עם המפתח הסודי. מחוץ ל-api, ולכן בלי כתובת
+db/create_jokes.sql     העתק של ה-migration
 spec/                   מסמכי האיפיון, ו-spec/plans
 ```
 

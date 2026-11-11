@@ -1,7 +1,7 @@
 # MILESTONES: בדיחה בלחיצה
 כלל: בסוף כל Milestone ה-AI עוצר, וממתין לבדיקה ולאישור מפורש שלי לפני שהוא ממשיך.
 
-שלושה Milestones, כשעתיים בסך הכל. את המפתחות של OpenAI אף פעם לא נותנים ל-Claude: מפתח ה-production עובר ישר מ-OpenAI ל-Vercel, ומפתח ה-dev מודבק ביד ב-.env.local.
+ארבעה Milestones. שלושת הראשונים כשעתיים, והרביעי כשעה וחצי. את המפתחות של OpenAI אף פעם לא נותנים ל-Claude: מפתח ה-production עובר ישר מ-OpenAI ל-Vercel, ומפתח ה-dev מודבק ביד ב-.env.local.
 
 איפה מריצים: הבחירה שלי. אפשר לבדוק כל Milestone בכתובת של Vercel אחרי push, ואפשר גם להריץ במחשב עם vercel dev. הקוד זהה בשני המקרים.
 
@@ -69,3 +69,27 @@
   3. בתוך האפליקציה המותקנת מגיעה בדיחה חדשה בכל לחיצה.
   4. ב-Application ואז Cache Storage אין אף כתובת של /api.
   5. שינוי קטן בטקסט, push, ורענון: השינוי מופיע.
+
+## Milestone 4: האפליקציה זוכרת
+- המטרה: כל בדיחת AI נשמרת ב-Supabase, כפתור "צחקתי" סופר צחוקים, ורשימת "הכי מצחיקות" נשארת גם אחרי רענון.
+- לפני הקוד, ביד: חשבון ופרויקט ב-Supabase, בארגון נפרד לקורס, והמחבר של Supabase מחובר ל-Claude, במצב Manual.
+- בסיס הנתונים, דרך המחבר של Supabase. אם יש יותר מפרויקט אחד, שואלים באיזה לעבוד:
+  - migration בשם create_jokes: טבלה public.jokes עם id מסוג uuid, מפתח ראשי, ברירת מחדל gen_random_uuid. created_at מסוג timestamptz, ברירת מחדל now. topic מסוג text. text מסוג text, חובה. laughs מסוג integer, חובה, ברירת מחדל 0.
+  - הנעילה: RLS דולק בלי אף policy. grant select, insert, update ל-service_role בלבד. revoke all מ-anon ומ-authenticated.
+  - פונקציה public.add_laugh(joke_id uuid): מוסיפה 1 למונה ומחזירה את המספר החדש. security invoker, ‏search_path ריק, ושמות מלאים. revoke execute מ-public, anon ו-authenticated, ו-grant execute ל-service_role.
+  - ה-SQL נשמר גם כקובץ db/create_jokes.sql, ומוצג לפני ההרצה. אחרי ההרצה: get_advisors, הסבר בעברית, ועצירה.
+- מה מממשים:
+  - lib/supabase.js: לקוח אחד מהחבילה @supabase/supabase-js, ב-dependencies. הכתובת מ-process.env.SUPABASE_URL, והמפתח מ-process.env.SUPABASE_SECRET_KEY.
+  - api/joke.js שומרת כל בדיחת AI בטבלה, ומחזירה גם את ה-id שלה. שמירה שנכשלת לא עוצרת את הבדיחה, והשגיאה נרשמת ב-console.error.
+  - api/laugh.js: POST עם id, בדיקה שזה uuid, וקריאה ל-add_laugh דרך rpc.
+  - api/top.js: חמש הבדיחות עם הכי הרבה צחוקים, רק כאלה עם צחוק אחד לפחות.
+  - בדף: כפתור "צחקתי" עם מונה מתחת לכל בדיחת AI, שננעל אחרי לחיצה. רשימת "הכי מצחיקות", שמתעדכנת אחרי כל צחוק, בלי polling.
+  - .env.example: נוספת השורה SUPABASE_SECRET_KEY=. גרסה חדשה ל-service worker.
+- ביד, לפני הדחיפה: ב-Vercel, SUPABASE_URL מסוג Config, ו-SUPABASE_SECRET_KEY מסוג Secret, ב-Production וב-Preview.
+- התוצר המצופה: "צחקתי", ורשימה שנשמרת.
+- תנאי השלמה (Definition of Done):
+  1. בטלפון: בדיחה, "צחקתי", והיא מופיעה ב"הכי מצחיקות". אחרי רענון הרשימה נשארת.
+  2. ב-Table Editor: כל בדיחת AI היא שורה, והעמודה laughs עולה.
+  3. ב-Logs של Vercel: בכל בדיחה כתוב saved: yes.
+  4. בודק הנעילה מחזיר "נעול", גם כשיש בטבלה שורות.
+  5. המחרוזות sk- ו-sb_secret_ לא מופיעות באף קובץ בריפו, ובדף index.html אין את המילה supabase.

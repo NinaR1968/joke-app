@@ -1,218 +1,276 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FFE15A">
+<meta name="description" content="כותבים נושא, לוחצים, וצוחקים. אפליקציית תרגול של קורס 53500.">
 <title>בדיחה בלחיצה</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Playpen+Sans+Hebrew:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Playpen+Sans+Hebrew:wght@500;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --sun: #FFE15A;
-    --paper: #FFFFFF;
-    --ink: #2B1E4A;
-    --ink-soft: #4A3D6B;
-    --red: #F23D2F;
-    --blue: #2E9BFF;
-    --error: #C0261B;
-    --error-bg: #FFE8EC;
-    --hint: #756B92;
-    --ui: "Fredoka", system-ui, sans-serif;
-    --hand: "Playpen Sans Hebrew", "Fredoka", system-ui, sans-serif;
+    --sun:#FFE15A;      /* background */
+    --ink:#2B1E4A;      /* text, outlines and hard shadows */
+    --ink-soft:#4A3D6B;
+    --paper:#FFFFFF;    /* input, bubble and cards */
+    --red:#F23D2F;      /* the big button */
+    --blue:#2E9BFF; --pink:#FF5FA8; --mint:#1FCB8C; --grape:#8B5CF6;
+    --ok:#0B7A54;
+    --bad:#C0261B; --bad-soft:#FFE8EC;
+    --ui:"Fredoka","Rubik",system-ui,sans-serif;
+    --joke:"Playpen Sans Hebrew","Fredoka",system-ui,sans-serif;
+    color-scheme: light;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing:border-box; margin:0; padding:0; }
   body {
-    margin: 0;
-    min-height: 100vh;
-    background: var(--sun) url("assets/bg-dots.svg");
-    color: var(--ink);
-    font-family: var(--ui);
+    font-family:var(--ui); color:var(--ink); min-height:100dvh;
+    display:flex; flex-direction:column; padding:calc(14px + env(safe-area-inset-top)) 18px 20px;
+    /* a few doodles at the top edges, comic halftone dots everywhere */
+    background:url("/assets/bg-doodles.svg") top center / 440px 230px no-repeat,
+               url("/assets/bg-dots.svg") 0 0 / 16px 16px repeat,
+               var(--sun);
   }
-  .doodles {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 440px;
-    max-width: 100%;
-    height: 230px;
-    background: url("assets/bg-doodles.svg") no-repeat center top / contain;
-    pointer-events: none;
-  }
-  main {
-    position: relative;
-    max-width: 440px;
-    margin: 0 auto;
-    padding: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-  .logo { display: block; width: 300px; max-width: 100%; margin: 0 auto; }
-  .intro {
-    margin: 0;
-    text-align: center;
-    font-size: 17px;
-    font-weight: 500;
-    color: var(--ink-soft);
-  }
-  label { font-size: 18px; font-weight: 600; }
+  main { width:100%; max-width:440px; margin:0 auto; flex:1; display:flex; flex-direction:column; gap:14px; }
+
+  .logo { display:flex; justify-content:center; }
+  .logo img { width:min(300px, 80vw); height:auto; display:block; }
+  .sub { text-align:center; font-size:17px; font-weight:500; color:var(--ink-soft); margin-top:-6px; text-wrap:balance; }
+
+  form { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+  label { font-size:18px; font-weight:600; }
   input {
-    width: 100%;
-    font: 500 19px var(--ui);
-    color: var(--ink);
-    background: var(--paper);
-    border: 3px solid var(--ink);
-    border-radius: 18px;
-    box-shadow: 4px 4px 0 var(--ink);
-    padding: 12px 16px;
-    transform: rotate(0.6deg);
+    width:100%; font:inherit; font-size:19px; font-weight:500; padding:13px 16px; color:var(--ink);
+    background:var(--paper); border:3px solid var(--ink); border-radius:18px; box-shadow:4px 4px 0 var(--ink);
+    transform:rotate(.6deg);
   }
-  input::placeholder { color: var(--hint); opacity: 1; }
-  input:focus { outline: 4px solid var(--blue); outline-offset: 0; }
-  button {
-    width: 100%;
-    min-height: 64px;
-    font: 700 24px var(--ui);
-    color: #fff;
-    background: var(--red);
-    border: 3px solid var(--ink);
-    border-radius: 999px;
-    box-shadow: 0 8px 0 var(--ink);
-    transform: rotate(-1deg);
-    cursor: pointer;
-    transition: transform .08s, box-shadow .08s;
-  }
-  button:active, button:disabled {
-    transform: translateY(6px) rotate(-1deg);
-    box-shadow: 0 2px 0 var(--ink);
-  }
-  button:disabled { cursor: wait; }
-  button:focus-visible { outline: 4px solid var(--blue); outline-offset: 3px; }
+  input::placeholder { color:#756B92; }
+  input:focus-visible, button:focus-visible { outline:4px solid var(--blue); outline-offset:3px; }
+  button { font:inherit; cursor:pointer; }
 
-  .bubble {
-    position: relative;
-    min-height: 190px;
-    margin-top: 6px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    text-align: center;
-    background: var(--paper);
-    border: 3px solid var(--ink);
-    border-radius: 28px;
-    box-shadow: 6px 6px 0 var(--ink);
-    transform: rotate(-1.2deg);
+  /* The big push button: it really goes down when you press it */
+  .go {
+    margin-top:10px; width:100%; min-height:64px; font-size:24px; font-weight:700; color:#FFFFFF;
+    background:var(--red); border:3px solid var(--ink); border-radius:999px;
+    box-shadow:0 8px 0 var(--ink); transform:rotate(-1deg); transition:transform .08s, box-shadow .08s;
+    text-shadow:0 2px 0 rgba(43,30,74,.35);
   }
-  .bubble[data-state="error"] { background: var(--error-bg); }
-  .mascot { width: 118px; height: auto; }
-  .text { margin: 0; font-size: 16px; font-weight: 500; color: var(--ink-soft); }
-  .bubble[data-state="joke"] {
-    justify-content: flex-start;
-    padding-top: 44px;
-  }
-  .bubble[data-state="joke"] .mascot {
-    position: absolute;
-    top: -34px;
-    right: -10px;
-    width: 86px;
-    transform: rotate(8deg);
-  }
-  .bubble[data-state="joke"] .text {
-    font: 500 25px/1.55 var(--hand);
-    color: var(--ink);
-    text-align: right;
-    align-self: stretch;
-  }
-  .bubble[data-state="error"] .text { color: var(--error); font-weight: 600; }
-  footer {
-    margin-top: 10px;
-    text-align: center;
-    font-size: 13px;
-    color: var(--ink-soft);
-  }
+  .go:active, .go[disabled] { transform:rotate(-1deg) translateY(6px); box-shadow:0 2px 0 var(--ink); }
+  button[disabled] { cursor:wait; }
 
-  .bubble[data-state="idle"] .mascot { animation: hop 2.4s ease-in-out infinite; }
-  .bubble[data-state="think"] .mascot { animation: squash .5s ease-in-out infinite; }
-  .bubble[data-state="joke"] .mascot { animation: roll 1s ease-in-out 4; }
-  .bubble[data-state="error"] .mascot { animation: wobble .6s ease-in-out 2; }
-  @keyframes hop { 50% { transform: translateY(-5px); } }
-  @keyframes squash { 50% { transform: scale(.86); } }
-  @keyframes roll {
-    0%, 100% { transform: rotate(8deg); }
-    50% { transform: rotate(-12deg); }
+  /* The joke bubble. data-state is idle, think, joke or error */
+  .stage {
+    position:relative; margin-top:22px; background:var(--paper); border:3px solid var(--ink); border-radius:28px;
+    box-shadow:6px 6px 0 var(--ink); padding:22px 20px; min-height:190px; transform:rotate(-1.2deg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center;
   }
-  @keyframes wobble {
-    25% { transform: rotate(-8deg); }
-    75% { transform: rotate(8deg); }
+  .msg { font-size:18px; font-weight:500; color:var(--ink-soft); max-width:30ch; }
+  .stage[data-state="joke"] { align-items:stretch; justify-content:flex-start; text-align:start; padding-top:46px; }
+  .stage[data-state="joke"] .msg { font-family:var(--joke); font-size:25px; line-height:1.55; color:var(--ink); max-width:none; white-space:pre-wrap; }
+  .stage[data-state="error"] { background:var(--bad-soft); }
+  .stage[data-state="error"] .msg { color:var(--bad); font-weight:600; }
+
+  /* Under the joke: where it came from, and the laugh button */
+  .meta { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:6px; font-size:14px; font-weight:500; color:var(--ink-soft); }
+  .meta[hidden] { display:none; }
+  .laugh {
+    min-height:42px; padding:6px 18px; font-size:17px; font-weight:700; color:var(--ink);
+    background:var(--sun); border:3px solid var(--ink); border-radius:999px; box-shadow:0 4px 0 var(--ink); transform:rotate(-2deg);
   }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation: none !important; transition: none !important; }
+  .laugh:active { transform:rotate(-2deg) translateY(3px); box-shadow:0 1px 0 var(--ink); }
+  .laugh[disabled] { cursor:default; background:var(--paper); color:var(--ok); border-color:var(--ok); box-shadow:none; }
+
+  /* The mascot: four pictures in assets/, one shown per state */
+  .mascot { width:118px; }
+  .mascot img { display:none; width:100%; height:auto; }
+  .stage[data-state="idle"] .m-idle, .stage[data-state="think"] .m-think,
+  .stage[data-state="joke"] .m-joke, .stage[data-state="error"] .m-error { display:block; }
+  .stage[data-state="joke"] .mascot { position:absolute; top:-46px; inset-inline-start:-14px; width:86px; transform:rotate(8deg); }
+
+  @keyframes bob { 50% { transform:translateY(-5px); } }
+  @keyframes squash { 0%,100% { transform:scaleY(1); } 50% { transform:scaleY(.86); } }
+  @keyframes giggle { 0%,100% { transform:rotate(8deg); } 25% { transform:rotate(-2deg); } 75% { transform:rotate(14deg); } }
+  @keyframes wobble { 0%,100% { transform:rotate(-6deg); } 50% { transform:rotate(6deg); } }
+  .stage[data-state="idle"] .mascot { animation:bob 2.4s ease-in-out infinite; }
+  .stage[data-state="think"] .m-think { transform-origin:50% 90%; animation:squash .5s ease-in-out infinite; }
+  .stage[data-state="joke"] .mascot { animation:giggle .35s ease-in-out 4; }
+  .stage[data-state="error"] .mascot { animation:wobble 1.2s ease-in-out 2; }
+  @media (prefers-reduced-motion: reduce) { .mascot, .mascot img { animation:none !important; } }
+
+  /* The top list: ranked sticker cards */
+  h2 { font-size:24px; font-weight:700; margin-top:16px; }
+  ol.top { list-style:none; display:flex; flex-direction:column; gap:12px; counter-reset:rank; margin-top:8px; }
+  ol.top li {
+    position:relative; counter-increment:rank; background:var(--paper); border:3px solid var(--ink); border-radius:18px;
+    box-shadow:4px 4px 0 var(--ink); padding:12px 14px; padding-inline-start:56px;
+    font-family:var(--joke); font-size:18px; line-height:1.5;
   }
+  ol.top li:nth-child(odd) { transform:rotate(-.7deg); }
+  ol.top li:nth-child(even) { transform:rotate(.7deg); }
+  ol.top li::before {
+    content:counter(rank); position:absolute; inset-inline-start:12px; top:12px; width:32px; height:32px;
+    display:grid; place-items:center; border:3px solid var(--ink); border-radius:50%;
+    font-family:var(--ui); font-size:16px; font-weight:700; color:#FFFFFF; background:var(--grape);
+  }
+  ol.top li:nth-child(1)::before { background:var(--red); }
+  ol.top li:nth-child(2)::before { background:var(--blue); }
+  ol.top li:nth-child(3)::before { background:var(--mint); }
+  ol.top li b { display:block; font-family:var(--ui); font-size:14px; color:var(--ink-soft); margin-top:4px; font-weight:600; }
+  ol.top li.muted { padding-inline-start:14px; font-family:var(--ui); font-size:16px; color:var(--ink-soft); }
+  ol.top li.muted::before { display:none; }
+
+  footer { text-align:center; font-size:13px; font-weight:500; color:var(--ink-soft); margin-top:22px; }
 </style>
 </head>
 <body>
-<div class="doodles" aria-hidden="true"></div>
 <main>
-  <img class="logo" src="assets/logo.svg" alt="בדיחה בלחיצה">
-  <p class="intro">כותבים נושא, לוחצים, וצוחקים. בלי נושא, מקבלים בדיחה כללית.</p>
+  <h1 class="logo"><img src="/assets/logo.svg" alt="בדיחה בלחיצה" width="300" height="158"></h1>
+  <p class="sub">כותבים נושא, לוחצים, וצוחקים. בלי נושא, מקבלים בדיחה כללית.</p>
 
-  <form id="form" autocomplete="off">
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <label for="topic">על מה הבדיחה?</label>
-      <input id="topic" name="topic" type="text" maxlength="100" placeholder="למשל: חתולים">
-      <button id="go" type="submit">תנו לי בדיחה!</button>
-    </div>
+  <form id="form">
+    <label for="topic">על מה הבדיחה?</label>
+    <input id="topic" name="topic" type="text" maxlength="100" placeholder="למשל: חתולים" autocomplete="off" enterkeyhint="send">
+    <button id="go" class="go" type="submit">תנו לי בדיחה!</button>
   </form>
 
-  <section class="bubble" id="bubble" data-state="idle" aria-live="polite">
-    <img class="mascot" id="mascot" src="assets/mascot-idle.svg" alt="">
-    <p class="text" id="text">לוחצים על הכפתור, והבדיחה מופיעה כאן</p>
+  <section id="stage" class="stage" data-state="idle">
+    <div class="mascot" aria-hidden="true">
+      <img class="m-idle" src="/assets/mascot-idle.svg" alt="">
+      <img class="m-think" src="/assets/mascot-think.svg" alt="">
+      <img class="m-joke" src="/assets/mascot-joke.svg" alt="">
+      <img class="m-error" src="/assets/mascot-error.svg" alt="">
+    </div>
+    <p id="msg" class="msg" aria-live="polite">לוחצים על הכפתור, והבדיחה מופיעה כאן</p>
+    <div id="meta" class="meta" hidden></div>
   </section>
 
-  <footer>מיישם AI ואוטומציה · 53500</footer>
+  <section aria-labelledby="topTitle">
+    <h2 id="topTitle">הכי מצחיקות</h2>
+    <ol id="top" class="top"><li class="muted">טוען...</li></ol>
+  </section>
 </main>
+<footer>מיישם AI ואוטומציה · 53500</footer>
 
 <script>
-  const form = document.getElementById("form");
-  const topicInput = document.getElementById("topic");
-  const go = document.getElementById("go");
-  const bubble = document.getElementById("bubble");
-  const mascot = document.getElementById("mascot");
-  const text = document.getElementById("text");
+  // The page never talks to OpenAI, Google or Supabase. It only calls our own backend under /api.
+  const form = document.getElementById('form');
+  const topicInput = document.getElementById('topic');
+  const btn = document.getElementById('go');
+  const stage = document.getElementById('stage');
+  const msg = document.getElementById('msg');
+  const meta = document.getElementById('meta');
+  const topList = document.getElementById('top');
 
-  const buttonLabel = { idle: "תנו לי בדיחה!", think: "חושב...", joke: "עוד בדיחה!", error: "לנסות שוב" };
+  // Which jokes this device already laughed at (a convenience, not security)
+  const LKEY = 'joke-app.laughed';
+  let laughed = [];
+  try { laughed = JSON.parse(localStorage.getItem(LKEY) || '[]'); } catch {}
+  const remember = (id) => { laughed.push(id); try { localStorage.setItem(LKEY, JSON.stringify(laughed.slice(-200))); } catch {} };
 
-  function setState(state, message) {
-    bubble.dataset.state = state;
-    mascot.src = `assets/mascot-${state}.svg`;
-    text.textContent = message;
-    go.textContent = buttonLabel[state];
-    go.disabled = state === "think";
+  async function call(url, options) {
+    const res = await fetch(url, options);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'משהו השתבש. נסו שוב.');
+    return data;
   }
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const topic = topicInput.value.trim();
-    setState("think", topic ? `מחפש בדיחה על ${topic}...` : "מחפש בדיחה...");
-    try {
-      const response = await fetch("/api/joke", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic }),
+  // One place that switches the bubble between its four states: idle, think, joke, error
+  function show(state, text) {
+    stage.dataset.state = state;
+    msg.textContent = text; // textContent, never innerHTML: the text came from outside
+    meta.hidden = true;
+    meta.replaceChildren();
+  }
+
+  function busy(on, label) {
+    btn.disabled = on;
+    if (on) show('think', label);
+  }
+
+  function showJoke(text, { id = null } = {}) {
+    show('joke', text);
+    const from = document.createElement('span');
+    from.textContent = 'נכתבה עכשיו';
+    meta.append(from);
+
+    if (id) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'laugh';
+      const done = laughed.includes(id);
+      b.textContent = done ? 'צחקתם' : 'צחקתי';
+      b.disabled = done;
+      b.addEventListener('click', async () => {
+        b.disabled = true;
+        try {
+          const r = await call('/api/laugh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+          remember(id);
+          b.textContent = 'צחקתם · ' + r.laughs;
+          loadTop();
+        } catch (err) {
+          b.disabled = false;
+          from.textContent = err.message;
+        }
       });
-      const data = await response.json();
-      if (!response.ok || !data.joke) throw new Error(data.error || "שגיאה");
-      setState("joke", data.joke);
+      meta.append(b);
+    }
+    meta.hidden = false;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const topic = topicInput.value.trim();
+    btn.textContent = 'חושב...';
+    busy(true, topic ? 'מחפש בדיחה על ' + topic + '...' : 'מחפש בדיחה...');
+    try {
+      const data = await call('/api/joke', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic }) });
+      showJoke(data.joke, { id: data.id });
+      btn.textContent = 'עוד בדיחה!';
     } catch (err) {
-      const known = err instanceof Error && err.message && err.message !== "שגיאה" && !(err instanceof TypeError) && !(err instanceof SyntaxError);
-      setState("error", known ? err.message : "משהו השתבש. נסו שוב עוד רגע.");
+      show('error', err.message);
+      btn.textContent = 'לנסות שוב';
+    } finally {
+      busy(false);
     }
   });
+
+  async function loadTop() {
+    try {
+      const { jokes } = await call('/api/top');
+      topList.replaceChildren();
+      if (!jokes.length) {
+        const li = document.createElement('li');
+        li.className = 'muted';
+        li.textContent = 'עוד אין. צחקו על בדיחה, והיא תופיע כאן.';
+        topList.append(li);
+        return;
+      }
+      for (const j of jokes) {
+        const li = document.createElement('li');
+        li.textContent = j.text;
+        const b = document.createElement('b');
+        b.textContent = (j.laughs === 1 ? 'צחוק אחד' : j.laughs + ' צחוקים') + (j.topic ? ' · ' + j.topic : '');
+        li.append(b);
+        topList.append(li);
+      }
+    } catch (err) {
+      topList.replaceChildren();
+      const li = document.createElement('li');
+      li.className = 'muted';
+      li.textContent = err.message;
+      topList.append(li);
+    }
+  }
+  loadTop();
+
+  // PWA: register the service worker so the app can be installed
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+  }
 </script>
 </body>
 </html>

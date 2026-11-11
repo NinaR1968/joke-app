@@ -1,6 +1,8 @@
+# Secrets never go to GitHub
 .env
 .env.*
+# ...except the empty example file, so everyone knows which variables are needed
 !.env.example
+# Local Vercel settings
 .vercel
 node_modules
-joke-app-spec.zip
